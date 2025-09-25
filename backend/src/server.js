@@ -6,6 +6,8 @@ import { connectDB } from './lib/db.js';
 const app = express();
 const PORT = process.env.PORT;
 
+app.use(express.json()); // Middleware to parse JSON bodies
+
 app.use("/api/auth", authRoutes);
 
 app.listen(5001, ()=>{
