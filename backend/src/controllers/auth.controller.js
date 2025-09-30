@@ -35,14 +35,16 @@ export async function signup(req, res) {
       profilePic: randomAvatar,
     });
 
-    try{
+    try {
       await upsertStreamUser({
-      id: newUser._id.toString(),
-      name: newUser.fullName,
-      image: newUser.profilePic || "",
-    });
-    console.log(`Stream user created/updated successfully for ${newUser.fullName}`);
-    }catch(err){
+        id: newUser._id.toString(),
+        name: newUser.fullName,
+        image: newUser.profilePic || "",
+      });
+      console.log(
+        `Stream user created successfully for ${newUser.fullName}`
+      );
+    } catch (err) {
       console.log("Error in creating/updating Stream user:", err);
     }
 
@@ -66,7 +68,6 @@ export async function signup(req, res) {
     res.status(500).json({ message: "Server error" });
   }
 }
-
 export async function login(req, res) {
   try {
     // Basic validation
@@ -83,11 +84,9 @@ export async function login(req, res) {
     if (!isPasswordCorrect)
       return res.status(400).json({ message: "Invalid email or password" });
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "7d",
+    });
     // Set the token in an HTTP-only cookie
     res.cookie("jwt", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -103,6 +102,55 @@ export async function login(req, res) {
   }
 }
 export function logout(req, res) {
-  res.clearCookie('jwt');
-  res.status(200).json({success:true, message: 'Logout successfully'});
+  res.clearCookie("jwt");
+  res.status(200).json({ success: true, message: "Logout successfully" });
+}
+export async function onboard(req, res) {
+  try {
+    const userId = req.user._id;
+    const { fullName, bio, nativeLanguage, learningLanguage, location } =
+      req.body;
+    if (!fullName || !nativeLanguage || !learningLanguage || !location) {
+      return res.status(400).json({
+        message: "All fields are required",
+        missingFields: [
+          !fullName && "fullName",
+          !bio && "bio",
+          !nativeLanguage && "nativeLanguage",
+          !learningLanguage && "learningLanguage",
+          !location && "location",
+        ].filter(Boolean),
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        ...req.body,
+        inOnboarded: true,
+      },
+      { new: true }
+    );
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    try {
+      await upsertStreamUser({
+        id: updatedUser._id.toString(),
+        name: updatedUser.fullName,
+        image: updatedUser.profilePic || "",
+      });
+      console.log(
+        `Stream user updated successfully for ${updatedUser.fullName}`
+      );
+    } catch (err) {
+      console.log("Error in updated Stream user:", err);
+    }
+
+    res.status(200).json({ success: true, user: updatedUser });
+  
+  } catch (err) {
+    console.error("Error in onboard controller:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 }

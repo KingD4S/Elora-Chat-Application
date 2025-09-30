@@ -14,7 +14,7 @@ const streamClient = StreamChat.getInstance(apikey, apiSecret);
 // Create or update a user in Stream
 export const upsertStreamUser = async (userData) =>{ // Upsert means update if exists else create
     try{
-        await streamClient.upsertUser(userDatacd); 
+        await streamClient.upsertUser(userData); 
         return userData;
     }catch(err){
         console.error("Error creating/updating Stream user:", err);
